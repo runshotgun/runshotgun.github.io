@@ -106,8 +106,8 @@
 				// Use the current date.
 				// More information about available dates are provided trough the Time API,
 				// see https://docs.meteoblue.com/en/weather-apis/maps-api/time-api
-				//const time = new Date().toISOString().substring(0, 13) + ":00Z";
-				const time = new Date(2023, 3, 25, 0, 0, 0).toISOString().substring(0, 13) + ":00Z";
+				const time = new Date().toISOString().substring(0, 13) + ":00Z";
+				//const time = new Date(2023, 3, 25, 0, 0, 0).toISOString().substring(0, 13) + ":00Z";
 
 				// The source contains information about the tiles
 				const source = {
@@ -207,9 +207,7 @@
 			mapboxMap.setLayoutProperty('admin-1-boundary', 'visibility', step == target_step ? 'visible' : 'none');
 
 			target_step++;
-			if (step == target_step) {
-				mapboxMap.addLayer(temperatures, "water");
-			}
+			if (step == target_step) { mapboxMap.addLayer(temperatures, "water"); }
 
 			setTimeout(() => {
 				mapboxMap.fitBounds(parts[section]);
