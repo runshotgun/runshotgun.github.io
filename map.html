@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Prints</title>
+	<meta charset="UTF-8" />
+	<script src='https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js'></script>
+	<link href='https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.css' rel='stylesheet' />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<style>
+		body {
+			margin: 0;
+			--width: 11400px;
+			--height: 7800px;
+		}
+
+		#ready {
+			display: block;
+			position: fixed;
+			top: 20px;
+			left: 20px;
+			height: 30px;
+			background: #b70505;
+			padding: 0 10px;
+			z-index: 100;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 20px;
+			font-weight: bold;
+			cursor: pointer;
+		}
+
+		#ready.yes {
+			background: #1cb705;
+		}
+
+		#map {
+			width: var(--width);
+			height: var(--height);
+			background: #FFFFFF;
+			pointer-events: none;
+		}
+
+		a.mapboxgl-ctrl-logo {
+			display: none;
+		}
+
+		.mapboxgl-ctrl-attrib {
+			display: none;
+		}
+	</style>
+	<!-- width: 7800; height: 11400; (24/36, 300dpi)-->
+</head>
+
+<body>
+	<div id="ready"></div>
+	<div id="map"></div>
+	<script type="module">
+
+		const load_weather = true;
+		const parts = [
+			[
+				[180, 85],
+				[-180, -65]
+			],
+			//[
+			//	[-1, -90],
+			//	[180, 90]
+			//]
+		];
+		const positon = [0, 0, 10];
+
+		let temperatures = null;
+
+		// secion of the map getting captured
+		let section = 0;
+
+		// Load Mapbox GL JS
+		mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcnplZCIsImEiOiJja3M0dnBhcnkwcmVyMnNyem9oczlldDhsIn0.umFSL6RazMkBy81adF90eg';
+		const mapboxMap = new mapboxgl.Map({
+			center: [7, 47],
+			container: document.getElementById("map"),
+			zoom: 5,
+			hash: true,
+			preserveDrawingBuffer: true,
+		});
+
+		// Add background map
+		mapboxMap.setStyle('mapbox://styles/biarzed/cle1zqxzq000601tl91z3il7i');
+
+		// Wait until background map has loaded
+		mapboxMap.on("load", () => {
+
+			if (load_weather) {
+				// Rate-limited demo API key. Will be replaced from time to time. Do not use.
+				// Get an API key here: https://content.meteoblue.com/en/access-options/meteoblue-weather-api
+				// https://docs.meteoblue.com/en/weather-apis/maps-api/examples
+				const apiKey = "be72f76237db";
+
+				// For a full list of available domains and height levels, please see
+				// https://docs.meteoblue.com/en/weather-apis/maps-api/domains
+				const domain = "NEMSAUTO";
+				const level = "2 m above gnd";
+
+				// Use the current date.
+				// More information about available dates are provided trough the Time API,
+				// see https://docs.meteoblue.com/en/weather-apis/maps-api/time-api
+				//const time = new Date().toISOString().substring(0, 13) + ":00Z";
+				const time = new Date(2023, 3, 25, 0, 0, 0).toISOString().substring(0, 13) + ":00Z";
+
+				// The source contains information about the tiles
+				const source = {
+					name: "temperatureSource",
+					type: "vector",
+					minzoom: 0,
+					maxzoom: 20,
+					tiles: [
+						// For full Tile URL docs, see https://docs.meteoblue.com/en/weather-apis/maps-api/tile-api
+						`https://maps-api.meteoblue.com/v1/map/vector/${domain}/${time}/` +
+						`temperatureLayer~11~${level}~hourly~none` +
+						`~contourLinear~0.1~-100~100` +
+						`/{z}/{x}/{y}?temperatureUnit=C&apikey=${apiKey}`
+					]
+				};
+
+				// The layer describes how to display the information from the source.
+				// This allows for custom styling. Refer to Mapbox docs for all options.
+				temperatures = {
+					"id": "temperatures",
+					"source": "temperatureSource", // the source name from above
+					"source-layer": "temperatureLayer", // the layer name from the tile URL
+					"type": "fill",
+					"paint": {
+						"fill-antialias": false,
+						"fill-opacity": 1,
+						"fill-color": [
+							"interpolate",
+							["linear"],
+							["get", "minValue"],
+							-100,
+							"#2d054d",
+							-40,
+							"#2d054d",
+							-30,
+							"#443396",
+							-20,
+							"#4e5ad4",
+							-5,
+							"#76c4f5",
+							0,
+							"#79c7ed",
+							5,
+							"#82d1ce",
+							13,
+							"#e0ce4d",
+							20,
+							"#ee8435",
+							30,
+							"#eb533b",
+							40,
+							"#6d160b",
+							100,
+							"#6d160b",
+						]
+					}
+				};
+
+				// Add source
+				mapboxMap.addSource("temperatureSource", source);
+			}
+
+			//mapboxMap.setLayoutProperty('background', 'visibility', 'none');
+			//mapboxMap.setProjection('equirectangular');
+			mapboxMap.setProjection('mercator');
+		});
+
+
+		let step = 0;
+		const update_step = () => {
+
+			const el = document.getElementById("ready");
+			el.classList.remove("yes");
+			el.innerText = 'save map_' + step + '_' + section + '.png';
+
+
+			let target_step = 0;
+			mapboxMap.setLayoutProperty('water', 'visibility', step == target_step ? 'visible' : 'none');
+
+			target_step++;
+			mapboxMap.setLayoutProperty('hillshade', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('hillshade-base', 'visibility', step == target_step ? 'visible' : 'none');
+
+			target_step++;
+			mapboxMap.setLayoutProperty('waterway-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('natural-line-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('water-line-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('water-point-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('settlement-subdivision-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('natural-point-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('settlement-0-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('settlement-1-label', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('country-label', 'visibility', step == target_step ? 'visible' : 'none');
+
+			target_step++;
+			mapboxMap.setLayoutProperty('admin-0-boundary', 'visibility', step == target_step ? 'visible' : 'none');
+			mapboxMap.setLayoutProperty('admin-1-boundary', 'visibility', step == target_step ? 'visible' : 'none');
+
+			target_step++;
+			if (step == target_step) {
+				mapboxMap.addLayer(temperatures, "water");
+			}
+
+			setTimeout(() => {
+				mapboxMap.fitBounds(parts[section]);
+			}, 100);
+
+		};
+
+		document.getElementById("ready").addEventListener('wheel', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			section = 0;
+			if (e.deltaY < 0) {
+				step++;
+			} else {
+				step--;
+			}
+
+			if (step < 0) { step = 0; }
+			update_step();
+
+			document.getElementById("ready").classList.remove("yes");
+		});
+
+		document.getElementById("ready").addEventListener('click', () => {
+
+			if (document.getElementById("ready").classList.contains("yes")) {
+				document.getElementById("ready").classList.remove("yes");
+
+				var imgData = mapboxMap.getCanvas().toDataURL();
+				var link = document.createElement('a');
+				link.download = 'map_' + step + '_' + section + '.png';
+				link.href = imgData;
+				link.click();
+				link.remove();
+			}
+
+			setTimeout(() => {
+				if (section == parts.length - 1) {
+					section = 0;
+					step++;
+				} else {
+					section++;
+				}
+				update_step();
+			}, 100);
+		});
+
+
+		let added = false;
+		mapboxMap.on('idle', (e) => {
+
+			const el = document.getElementById("ready");
+			el.classList.add("yes");
+
+			if (!added) {
+				added = true;
+				update_step();
+
+			}
+		});
+
+	</script>
+</body>
+
+</html>
